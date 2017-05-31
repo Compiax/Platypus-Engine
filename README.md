@@ -1,4 +1,4 @@
-Platypus-Engine
+Platypus-OCR
 =====================
 
 @todo Add description
