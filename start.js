@@ -4,7 +4,7 @@ Split Bill Project
 
 Run this script as:
 
-node start.js image1filename image2filename image3filename
+node start.js image1filename.jpg image2filename.jpg image3filename.jpg
 
 It should then output the textual representation of the images passed to it
 in the same order that the images appear in the argument list.
