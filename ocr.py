@@ -1,7 +1,7 @@
 ## ocr.py
 ## Split Bill Project
 
-import sys, json, numpy as np
+import sys, json, re, numpy as np
 import pytesseract
 from PIL import Image
 
@@ -29,7 +29,10 @@ def main():
 		im = Image.open(filenames[x])
 		recognised_string += pytesseract.image_to_string(im)
 
-	print(recognised_string,'%s')
+	recognised_string = re.sub(r'[^a-zA-Z0-9\,\.\(\)]',' ',recognised_string)
+	string_list_representation = re.split(r"[\s]",recognised_string)
+
+	print(string_list_representation,'%s')
 
 #starting the main process 	
 if __name__ == '__main__':
