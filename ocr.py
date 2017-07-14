@@ -80,34 +80,51 @@ def real_item(test_string):
 	return True
 
 def structure_json(raw_string):
-	item_name = ""
-	json_string = '{"attributes":{"data":['
-	array_flag = False
-	item_total = 0
+	if(len(raw_string) == 0):
 
-	for x in range(0, len(raw_string)):
-		return_val = check_if_numeric(raw_string[x])
-		
-		if(return_val == False):
-			if(raw_string[x] != "R" and len(raw_string[x]) != 0):
-				item_name += raw_string[x]
-		else:
-			if(return_val > 0 and return_val < 80000 and item_name != ""):
-				if(real_item(item_name) == True):
-					item_total += return_val
-					if(array_flag != False):
-						json_string += ','
-					json_string += '{"desc":"' + item_name + '","price":"' + raw_string[x] + '"}'
-					array_flag = True
-					item_name = ""
-				else:
-					break
-		
-	json_string += ']},"relationships":{"data":{"total":"'+ str(item_total) +'"}}}'
-                         
-	final_dict = json.loads(json_string)
+		json_string = '{"errors":{"id":"xx","code":"NOTXT","title":"No text was recognised from the image"}}'
 
-	return json.dumps(final_dict)
+		final_dict = json.loads(json_string)
+
+		return json.dumps(final_dict)
+
+	elif(len(raw_string) < 4):
+
+		json_string = '{"errors":{"id":"xx","code":"GARBAGE","title":"Garbage text recognised from the image"}}'
+
+		final_dict = json.loads(json_string)
+
+		return json.dumps(final_dict)
+
+	else:
+		item_name = ""
+		json_string = '{"attributes":{"data":['
+		array_flag = False
+		item_total = 0
+
+		for x in range(0, len(raw_string)):
+			return_val = check_if_numeric(raw_string[x])
+			
+			if(return_val == False):
+				if(raw_string[x] != "R" and len(raw_string[x]) != 0):
+					item_name += raw_string[x]
+			else:
+				if(return_val > 0 and return_val < 80000 and item_name != ""):
+					if(real_item(item_name) == True):
+						item_total += return_val
+						if(array_flag != False):
+							json_string += ','
+						json_string += '{"desc":"' + item_name + '","price":"' + raw_string[x] + '"}'
+						array_flag = True
+						item_name = ""
+					else:
+						break
+			
+		json_string += ']},"relationships":{"data":{"total":"'+ str(item_total) +'"}}}'
+	                         
+		final_dict = json.loads(json_string)
+
+		return json.dumps(final_dict)
 
 
 # main process definition, for now it is only doing basic text recognition
