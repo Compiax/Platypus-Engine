@@ -21,29 +21,70 @@ def check_if_numeric(given_string):
 	except ValueError:
 		return False
 	
+def real_item(test_string):
+	check_string1 = "total"
+	check_string2 = "vat"
+	check_string3 = "tax"
+	check_string4 = "debit"
+	check_string5 = "card"
+	check_string6 = "payment"
+	check_string7 = "due"
+	check_string8 = "incl"
+	check_string9 = "paid"
+	check_string10 = "tendered"
+
+	if(check_string1 in test_string.lower() or check_string1 == test_string.lower()):
+		return False
+	if(check_string2 in test_string.lower() or check_string2 == test_string.lower()):
+		return False
+	if(check_string3 in test_string.lower() or check_string3 == test_string.lower()):
+		return False
+	if(check_string4 in test_string.lower() or check_string4 == test_string.lower()):
+		return False
+	if(check_string5 in test_string.lower() or check_string5 == test_string.lower()):
+		return False
+	if(check_string6 in test_string.lower() or check_string6 == test_string.lower()):
+		return False
+	if(check_string7 in test_string.lower() or check_string7 == test_string.lower()):
+		return False
+	if(check_string8 in test_string.lower() or check_string8 == test_string.lower()):
+		return False
+	if(check_string9 in test_string.lower() or check_string9 == test_string.lower()):
+		return False
+	if(check_string10 in test_string.lower() or check_string10 == test_string.lower()):
+		return False
+
+	return True
+
 # turn the raw string given into a json object
 # @todo clean up how the json object is constructed, add the rest of the formal jsonapi structure
 # 	identify and discard duplicate/trash items so they don't end up in the final json object
 def structure_json(raw_string):
 	item_name = ""
-	json_string = '{"attributes":['
+	json_string = '{"attributes":{"data":['
 	array_flag = False
+	item_total = 0
 
 	for x in range(0, len(raw_string)):
 		return_val = check_if_numeric(raw_string[x])
 		
 		if(return_val == False):
-			if(raw_string[x] != "R"):
+			if(raw_string[x] != "R" and len(raw_string[x]) != 0):
 				item_name += raw_string[x]
 		else:
-			if(array_flag != False):
-				json_string += ','
-			json_string += '{"desc":"' + item_name + '","price":"' + raw_string[x] + '"}'
-			array_flag = True
-			item_name = ""
+			if(return_val > 0 and return_val < 80000 and item_name != ""):
+				if(real_item(item_name) == True):
+					item_total += return_val
+					if(array_flag != False):
+						json_string += ','
+					json_string += '{"desc":"' + item_name + '","price":"' + raw_string[x] + '"}'
+					array_flag = True
+					item_name = ""
+				else:
+					break
 		
-	json_string += ']}'
-
+	json_string += ']},"relationships":{"data":{"total":"'+ str(item_total) +'"}}}'
+                         
 	final_dict = json.loads(json_string)
 
 	return json.dumps(final_dict)
