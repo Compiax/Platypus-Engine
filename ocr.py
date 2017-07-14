@@ -25,8 +25,10 @@
 	}
 }
 '''
-import sys, json, re, string, numpy as np
+import sys, json, re, string
 import pytesseract
+import cv2
+import os
 from PIL import Image
 
 #get name of image(s) from stdin
@@ -118,15 +120,15 @@ def main():
 	recognised_string = ""
 
 	for x in range(0, len(filenames)):
+	#image processing with open CV	
+		img = cv2.imread(filenames[x], 0)
+		img = cv2.fastNlMeansDenoising(img,10,10,7,21)
+
+		blur = cv2.GaussianBlur(img,(5,5),0)
+		ret3,th3 = cv2.threshold(blur,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
 		
-		'''
-		
-		image enhancement goes here
-
-		'''
-
-		im = Image.open(filenames[x])
-
+		cv2.imwrite('temp.tif', th3)
+		im = Image.open('temp.tif')
 		recognised_string += pytesseract.image_to_string(im)
 
 	recognised_string = re.sub(r'[^a-zA-Z0-9\,\.\(\)]',' ',recognised_string)
@@ -135,7 +137,7 @@ def main():
 	resulting_json = structure_json(string_list_representation);
 
 	print(resulting_json)
-
+	os.remove('temp.tif')
 #starting the main process 	
 if __name__ == '__main__':
 	main()
