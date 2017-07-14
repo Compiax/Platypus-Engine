@@ -25,7 +25,7 @@
 	}
 }
 '''
-import sys, json, re, string, numpy as np
+import sys, json, re, string
 import pytesseract
 from PIL import Image
 
