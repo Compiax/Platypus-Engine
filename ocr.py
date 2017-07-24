@@ -127,6 +127,30 @@ def structure_json(raw_string):
 		return json.dumps(final_dict)
 
 
+# Returns an image object to be proccessed by the Optical Character 
+# recognition softwatre Tesseract. 
+# Image Argument specifies the name of the image file to be processed
+# <p>
+# The image is processed using the Open CV software
+# The image is loaded in grayscale and subsequently denoised and thresholded
+# to improve the quality of the image used to obtain Tesseract charcter data
+#
+# @param	image 	name of the image to be processed
+# @return 			image object of the image specified by the image parameter 
+
+def processImage(image):
+
+	img = cv2.imread(image, 0)
+	img = cv2.fastNlMeansDenoising(img,10,10,7,21)
+
+	blur = cv2.GaussianBlur(img,(5,5),0)
+	ret3,th3 = cv2.threshold(blur,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+		
+	cv2.imwrite('temp.tif', th3)
+	im = Image.open('temp.tif')
+
+	return im
+
 # main process definition, for now it is only doing basic text recognition
 # @todo call the structure_json() function and instead of printing a
 # 		string it will print a stringified json object that conforms
@@ -137,15 +161,7 @@ def main():
 	recognised_string = ""
 
 	for x in range(0, len(filenames)):
-	#image processing with open CV	
-		img = cv2.imread(filenames[x], 0)
-		img = cv2.fastNlMeansDenoising(img,10,10,7,21)
-
-		blur = cv2.GaussianBlur(img,(5,5),0)
-		ret3,th3 = cv2.threshold(blur,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-		
-		cv2.imwrite('temp.tif', th3)
-		im = Image.open('temp.tif')
+		im = processImage(filenames[x])	
 		recognised_string += pytesseract.image_to_string(im)
 
 	recognised_string = re.sub(r'[^a-zA-Z0-9\,\.\(\)]',' ',recognised_string)
@@ -155,6 +171,7 @@ def main():
 
 	print(resulting_json)
 	os.remove('temp.tif')
+
 #starting the main process 	
 if __name__ == '__main__':
 	main()
