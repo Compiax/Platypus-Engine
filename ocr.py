@@ -27,7 +27,7 @@
 '''
 import sys, json, re, string
 import pytesseract
-import cv2
+#import cv2
 import os
 from PIL import Image
 
@@ -36,6 +36,7 @@ Get filenames of image(s) from stdin
 
 :returns: a formatted array of filenames
 """
+
 def read_in():
 	filenames = sys.stdin.readlines()
 	return json.loads(filenames[0])
@@ -192,6 +193,20 @@ def main():
 
 	print(resulting_json)
 	os.remove('temp.tif')
+
+def subprocess_main_call(given_string):
+	recognised_string = ""
+
+	im = processImage(given_string)	
+	recognised_string += pytesseract.image_to_string(im)
+
+	recognised_string = re.sub(r'[^a-zA-Z0-9\,\.\(\)]',' ',recognised_string)
+	string_list_representation = re.split(r"[\s]",recognised_string)
+
+	resulting_json = structure_json(string_list_representation);
+
+	print(resulting_json)
+	#os.remove('temp.tif')
 
 #starting the main process 	
 if __name__ == '__main__':
