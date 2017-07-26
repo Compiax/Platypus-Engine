@@ -31,12 +31,21 @@ import cv2
 import os
 from PIL import Image
 
-#get name of image(s) from stdin
+"""
+Get filenames of image(s) from stdin
+
+:returns: a formatted array of filenames
+"""
 def read_in():
 	filenames = sys.stdin.readlines()
 	return json.loads(filenames[0])
 
-#turn the raw string given into a json object
+"""
+Checks whether the string that is passed through to the function can be parsed to a float value
+
+:param given_string: The string to be checked
+:returns: False if the parameter that is passed through cannot be parsed to a float value, the float value if it can be parsed
+"""
 def check_if_numeric(given_string):
 	try: 
 		float(given_string)
@@ -44,6 +53,13 @@ def check_if_numeric(given_string):
 	except ValueError:
 		return False
 
+"""
+Brute force checks whether the string it is being passed is a predefined keyword,
+if it is a predefined keyword the string being passed should not be added as an item
+
+:param test_string: The string that is checked for keywords
+:returns: False if the test_string is a keyword, but True if the test_string is not a keyword (thusly a real item on the bill)
+"""
 def real_item(test_string):
 	check_string1 = "total"
 	check_string2 = "vat"
@@ -79,6 +95,12 @@ def real_item(test_string):
 
 	return True
 
+"""
+This function takes the raw array and creates a structured JSON object
+
+:param raw_string: The string array that the JSON object is built up out of 
+:returns: the final JSON object 
+"""
 def structure_json(raw_string):
 	if(len(raw_string) == 0):
 
@@ -127,17 +149,15 @@ def structure_json(raw_string):
 		return json.dumps(final_dict)
 
 
-# Returns an image object to be proccessed by the Optical Character 
-# recognition softwatre Tesseract. 
-# Image Argument specifies the name of the image file to be processed
-# <p>
-# The image is processed using the Open CV software
-# The image is loaded in grayscale and subsequently denoised and thresholded
-# to improve the quality of the image used to obtain Tesseract charcter data
-#
-# @param	image 	name of the image to be processed
-# @return 			image object of the image specified by the image parameter 
+"""
+Returns an image object to be proccessed by the Optical Character 
+recognition softwatre Tesseract. Image Argument specifies the name of the image file to be processed
+The image is processed using the Open CV software. The image is loaded in grayscale and subsequently denoised and thresholded 
+to improve the quality of the image used to obtain Tesseract charcter data
 
+:param	image: 	name of the image to be processed
+:returns: image object of the image specified by the image parameter 
+"""
 def processImage(image):
 
 	img = cv2.imread(image, 0)
@@ -151,11 +171,12 @@ def processImage(image):
 
 	return im
 
-# main process definition, for now it is only doing basic text recognition
-# @todo call the structure_json() function and instead of printing a
-# 		string it will print a stringified json object that conforms
-# 		to the agreed upon JSON communication standard.
+"""
+Main process definition, does text recognition from images, parses text recognised into an array,
+array is structured into a JSON object
 
+:returns: JSON object is passed back to the calling process
+"""
 def main():
 	filenames = read_in()
 	recognised_string = ""
