@@ -14,5 +14,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Get source
 COPY . .
 
+# Expose ports
+EXPOSE 5000
+
 # Command
-CMD [ "python", "./server.py" ]
+CMD [ "flask", "run" ]
