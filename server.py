@@ -9,20 +9,22 @@ _allowedextensions = set(['jpg','jpeg'])
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = _uploadfolder
 
-
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
+    print("Finding File")
     file = request.files['file']
 
+    print("Saving File")
     file.save(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
+    #file.save(os.path.join('.', file.filename))
 
+    print("calling ocr")
     json_object = ocr.subprocess_main_call("bills/"+file.filename)
 
     return jsonify(json_object)
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0')
-    
+app.run(host='0.0.0.0')
+
 '''
 import socket
 import sys

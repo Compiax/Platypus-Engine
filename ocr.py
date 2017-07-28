@@ -27,7 +27,7 @@
 '''
 import sys, json, re, string
 import pytesseract
-#import cv2
+import cv2
 import os
 from PIL import Image
 
@@ -48,7 +48,7 @@ Checks whether the string that is passed through to the function can be parsed t
 :returns: False if the parameter that is passed through cannot be parsed to a float value, the float value if it can be parsed
 """
 def check_if_numeric(given_string):
-	try: 
+	try:
 		float(given_string)
 		return float(given_string)
 	except ValueError:
@@ -99,8 +99,8 @@ def real_item(test_string):
 """
 This function takes the raw array and creates a structured JSON object
 
-:param raw_string: The string array that the JSON object is built up out of 
-:returns: the final JSON object 
+:param raw_string: The string array that the JSON object is built up out of
+:returns: the final JSON object
 """
 def structure_json(raw_string):
 	if(len(raw_string) == 0):
@@ -127,7 +127,7 @@ def structure_json(raw_string):
 
 		for x in range(0, len(raw_string)):
 			return_val = check_if_numeric(raw_string[x])
-			
+
 			if(return_val == False):
 				if(raw_string[x] != "R" and len(raw_string[x]) != 0):
 					item_name += raw_string[x]
@@ -142,22 +142,22 @@ def structure_json(raw_string):
 						item_name = ""
 					else:
 						break
-			
+
 		json_string += ']},"relationships":{"data":{"total":"'+ str(item_total) +'"}}}'
-	                         
+
 		final_dict = json.loads(json_string)
 
 		return json.dumps(final_dict)
 
 
 """
-Returns an image object to be proccessed by the Optical Character 
+Returns an image object to be proccessed by the Optical Character
 recognition softwatre Tesseract. Image Argument specifies the name of the image file to be processed
-The image is processed using the Open CV software. The image is loaded in grayscale and subsequently denoised and thresholded 
+The image is processed using the Open CV software. The image is loaded in grayscale and subsequently denoised and thresholded
 to improve the quality of the image used to obtain Tesseract charcter data
 
 :param	image: 	name of the image to be processed
-:returns: image object of the image specified by the image parameter 
+:returns: image object of the image specified by the image parameter
 """
 def processImage(image):
 
@@ -166,7 +166,7 @@ def processImage(image):
 
 	blur = cv2.GaussianBlur(img,(5,5),0)
 	ret3,th3 = cv2.threshold(blur,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-		
+
 	cv2.imwrite('temp.tif', th3)
 	im = Image.open('temp.tif')
 
@@ -183,7 +183,7 @@ def main():
 	recognised_string = ""
 
 	for x in range(0, len(filenames)):
-		im = processImage(filenames[x])	
+		im = processImage(filenames[x])
 		recognised_string += pytesseract.image_to_string(im)
 
 	recognised_string = re.sub(r'[^a-zA-Z0-9\,\.\(\)]',' ',recognised_string)
@@ -197,7 +197,7 @@ def main():
 def subprocess_main_call(given_string):
 	recognised_string = ""
 
-	im = processImage(given_string)	
+	im = processImage(given_string)
 	recognised_string += pytesseract.image_to_string(im)
 
 	recognised_string = re.sub(r'[^a-zA-Z0-9\,\.\(\)]',' ',recognised_string)
@@ -208,6 +208,6 @@ def subprocess_main_call(given_string):
 	print(resulting_json)
 	#os.remove('temp.tif')
 
-#starting the main process 	
+#starting the main process
 if __name__ == '__main__':
 	main()
