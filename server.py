@@ -15,10 +15,13 @@ def upload_file():
     file = request.files['file']
 
     file.save(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
-    
+
     json_object = ocr.subprocess_main_call("bills/"+file.filename)
 
     return jsonify(json_object)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0')
     
 '''
 import socket
@@ -38,7 +41,7 @@ i = 1
 while True:
 	_csock, _caddr = _serversocket.accept()
 
-	
+
 	#_fileid = datetime.datetime.fromtimestamp(time.time()).strftime('%Y/%m/%d_%H/%M/%S')
 	_file = open(str(i) + '.jpg','wb')
 	i += 1
@@ -58,5 +61,3 @@ while True:
 _serversocket.close()
 
 '''
-
-	
