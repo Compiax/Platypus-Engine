@@ -9,9 +9,9 @@
 		"id": "xxx",
 		"attributes": {
 			"data":[
-				{"desc":"description of item 1","price":"xx.xx"},
-				{"desc":"description of item 2","price":"xx.xx"},
-				{"desc":"description of item 3","price":"xx.xx"}
+				{"id":"1","desc":"description of item 1","price":"xx.xx","quantity":"1"},
+				{"id":"2","desc":"description of item 2","price":"xx.xx","quantity":"5"},
+				{"id":"3","desc":"description of item 3","price":"xx.xx","quantity":"3"}
 			]
 		},
 		"relationships": {
@@ -99,6 +99,8 @@ def real_item(test_string):
 """
 This function takes the raw array and creates a structured JSON object
 
+@todo: perfect the quantity of item recognised, as of now (19/08/2017) each item has a quantity of 1 by default.
+
 :param raw_string: The string array that the JSON object is built up out of
 :returns: the final JSON object
 """
@@ -124,6 +126,7 @@ def structure_json(raw_string):
 		json_string = '{"attributes":{"data":['
 		array_flag = False
 		item_total = 0
+		item_id = 1
 
 		for x in range(0, len(raw_string)):
 			return_val = check_if_numeric(raw_string[x])
@@ -137,7 +140,8 @@ def structure_json(raw_string):
 						item_total += return_val
 						if(array_flag != False):
 							json_string += ','
-						json_string += '{"desc":"' + item_name + '","price":"' + raw_string[x] + '"}'
+						json_string += '{"id":"' + str(item_id) + '","desc":"' + item_name + '","price":"' + raw_string[x] + '","quantity":"1"}'
+						item_id += 1
 						array_flag = True
 						item_name = ""
 					else:
@@ -161,6 +165,7 @@ to improve the quality of the image used to obtain Tesseract charcter data
 """
 def processImage(image):
 
+	
 	img = cv2.imread(image, 0)
 	img = cv2.fastNlMeansDenoising(img,10,10,7,21)
 
@@ -186,10 +191,11 @@ def main():
 		im = processImage(filenames[x])
 		recognised_string += pytesseract.image_to_string(im)
 
+
 	recognised_string = re.sub(r'[^a-zA-Z0-9\,\.\(\)]',' ',recognised_string)
 	string_list_representation = re.split(r"[\s]",recognised_string)
 
-	resulting_json = structure_json(string_list_representation);
+	resulting_json = structure_json(string_list_representation)
 
 	print(resulting_json)
 	os.remove('temp.tif')
@@ -203,7 +209,7 @@ def subprocess_main_call(given_string):
 	recognised_string = re.sub(r'[^a-zA-Z0-9\,\.\(\)]',' ',recognised_string)
 	string_list_representation = re.split(r"[\s]",recognised_string)
 
-	resulting_json = structure_json(string_list_representation);
+	resulting_json = structure_json(string_list_representation)
 
 	print(resulting_json)
 	#os.remove('temp.tif')
