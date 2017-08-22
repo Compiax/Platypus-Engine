@@ -1,6 +1,6 @@
 import ocr
 import os
-from flask import Flask, request, redirect, url_for, jsonify
+from flask import Flask, request, redirect, url_for, jsonify, make_response
 from werkzeug.utils import secure_filename
 from werkzeug.wrappers import BaseResponse as Response
 
@@ -20,9 +20,12 @@ def upload_file():
     #file.save(os.path.join('.', file.filename))
 
     print("calling ocr")
+
     json_object = ocr.subprocess_main_call("bills/"+file.filename)
 
-    return Response(json_object,status=200)
+    resp = make_response(jsonify(json_object))
+    resp.headers['Content-Type'] = 'application/json'
+    return resp
     
 
 
