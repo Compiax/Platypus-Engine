@@ -2,6 +2,7 @@ import ocr
 import os
 from flask import Flask, request, redirect, url_for, jsonify
 from werkzeug.utils import secure_filename
+from werkzeug.wrappers import BaseResponse as Response
 
 _uploadfolder = 'bills'
 _allowedextensions = set(['jpg','jpeg'])
@@ -21,7 +22,9 @@ def upload_file():
     print("calling ocr")
     json_object = ocr.subprocess_main_call("bills/"+file.filename)
 
-    return jsonify(json_object)
+    return Response(json_object,status=200)
+    
+
 
 app.run(host='0.0.0.0')
 
