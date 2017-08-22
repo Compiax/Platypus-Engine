@@ -213,6 +213,7 @@ def subprocess_main_call(given_string):
 
 	print(resulting_json)
 	#os.remove('temp.tif')
+	return resulting_json
 
 #starting the main process
 if __name__ == '__main__':
