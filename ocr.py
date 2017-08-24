@@ -48,11 +48,38 @@ Checks whether the string that is passed through to the function can be parsed t
 :returns: False if the parameter that is passed through cannot be parsed to a float value, the float value if it can be parsed
 """
 def check_if_numeric(given_string):
+
 	try:
 		float(given_string)
-		return float(given_string)
+		try:
+			int(given_string)
+			return False
+		except ValueError:
+			return float(given_string)
 	except ValueError:
 		return False
+
+
+def is_valid_line(test_string):
+	check_string1 = "cashier"
+	check_string2 = "--------"
+	check_string3 = "date"
+	check_string4 = "table"
+
+	try:
+		float(test_string)
+		return False
+	except ValueError:
+		if(check_string1 in test_string.lower() or check_string1 == test_string.lower()):
+			return False
+		if(check_string2 in test_string.lower() or check_string2 == test_string.lower()):
+			return False
+		if(check_string3 in test_string.lower() or check_string3 == test_string.lower()):
+			return False
+		if(check_string4 in test_string.lower() or check_string4 == test_string.lower()):
+			return False
+
+		return True
 
 """
 Brute force checks whether the string it is being passed is a predefined keyword,
@@ -132,7 +159,7 @@ def structure_json(raw_string):
 			return_val = check_if_numeric(raw_string[x])
 
 			if(return_val == False):
-				if(raw_string[x] != "R" and len(raw_string[x]) != 0):
+				if(raw_string[x] != "R" and len(raw_string[x]) != 0 and len(raw_string[x]) >= 2):
 					item_name += raw_string[x]
 			else:
 				if(return_val > 0 and return_val < 80000 and item_name != ""):
@@ -192,6 +219,7 @@ def main():
 		recognised_string += pytesseract.image_to_string(im)
 
 
+
 	recognised_string = re.sub(r'[^a-zA-Z0-9\,\.\(\)]',' ',recognised_string)
 	string_list_representation = re.split(r"[\s]",recognised_string)
 
@@ -206,8 +234,32 @@ def subprocess_main_call(given_string):
 	im = processImage(given_string)
 	recognised_string += pytesseract.image_to_string(im)
 
+	#turns the single string into an array split on endlines
+	line_by_line = re.split(r"[\n]",recognised_string)
+
+	#remove specific irrelevant lines
+	for x in range(0, len(line_by_line)):
+		if( is_valid_line(line_by_line[x]) == False):
+			line_by_line[x] = '\s';
+
+	#turns the array into a single string again
+	'\s'.join(line_by_line)
+
+	recognised_string = str(line_by_line)
+
+	#removes random garbage charaters like $ and ~ and @
 	recognised_string = re.sub(r'[^a-zA-Z0-9\,\.\(\)]',' ',recognised_string)
+
+	print(recognised_string)
+
+	#turns the single string into an array split on spaces
 	string_list_representation = re.split(r"[\s]",recognised_string)
+
+	#if the ['23']['.']['99'] situation occurs, this loop will ensure the float value is sent through as a single item 
+	for x in range(0, len(string_list_representation)):
+		if(string_list_representation[x].isdigit() == True and string_list_representation[x+1] == "." and string_list_representation[x+2].isdigit() == True):
+			string_list_representation[x] = string_list_representation[x] + string_list_representation[x+1] + string_list_representation[x+2]
+
 
 	resulting_json = structure_json(string_list_representation)
 
