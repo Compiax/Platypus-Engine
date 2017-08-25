@@ -3,21 +3,24 @@
 ## Split Bill Project
 
 '''
+Recognition was successful:
 {
-	"data": {
-		"type": "success/failure",
-		"id": "xxx",
-		"attributes": {
-			"data":[
-				{"id":"1","desc":"description of item 1","price":"xx.xx","quantity":"1"},
-				{"id":"2","desc":"description of item 2","price":"xx.xx","quantity":"5"},
-				{"id":"3","desc":"description of item 3","price":"xx.xx","quantity":"3"}
-			]
-		},
-		"relationships": {
-			"data":{total":"xx.xx"}
-		}
+	"type": "success",
+	"attributes": {
+		"data":[
+			{"id":"1","desc":"description of item 1","price":"xx.xx","quantity":"1"},
+			{"id":"2","desc":"description of item 2","price":"xx.xx","quantity":"5"},
+			{"id":"3","desc":"description of item 3","price":"xx.xx","quantity":"3"}
+		]
 	},
+	"relationships": {
+		"data":{total":"xx.xx"}
+	}
+}
+
+Recognition was not successful:
+{
+	"type":"failure",
 	"errors": {
 		"id": "xxx",
 		"code": "ERR1",
@@ -132,17 +135,19 @@ This function takes the raw array and creates a structured JSON object
 :returns: the final JSON object
 """
 def structure_json(raw_string):
+	print(raw_string)
+
 	if(len(raw_string) == 0):
 
-		json_string = '{"errors":{"id":"xx","code":"NOTXT","title":"No text was recognised from the image"}}'
+		json_string = '{"type":"failure","errors":{"id":"xx","code":"NOTXT","title":"No text was recognised from the image"}}'
 
 		final_dict = json.loads(json_string)
 
 		return json.dumps(final_dict)
 
-	elif(len(raw_string) < 4):
+	elif(len(raw_string) < 6):
 
-		json_string = '{"errors":{"id":"xx","code":"GARBAGE","title":"Garbage text recognised from the image"}}'
+		json_string = '{"type":"failure","errors":{"id":"xx","code":"GARBAGE","title":"Garbage text recognised from the image"}}'
 
 		final_dict = json.loads(json_string)
 
@@ -150,7 +155,7 @@ def structure_json(raw_string):
 
 	else:
 		item_name = ""
-		json_string = '{"attributes":{"data":['
+		json_string = '{"type":"success","attributes":{"data":['
 		array_flag = False
 		item_total = 0
 		item_id = 1
