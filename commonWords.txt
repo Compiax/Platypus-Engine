@@ -96,6 +96,7 @@ appletiser
 hot
 crusts
 cans
+side
 crust
 pizza
 pasta
