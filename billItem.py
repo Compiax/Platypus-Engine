@@ -21,4 +21,4 @@ class BillItem:
         fieldConcat = ""
         for field in self.fields:
             fieldConcat += field + " "
-        print(fieldConcat)
+        return fieldConcat

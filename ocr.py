@@ -2,9 +2,10 @@
 ## ocr.py
 ## Split Bill Project
 
-import sys, json, re, string
+import sys, json, re, string, math, time
 import numpy as np
 import pytesseract
+import Levenshtein
 import cv2
 import os
 import jsonTemplate
@@ -12,6 +13,8 @@ from billItem import BillItem
 from PIL import Image
 
 currentJsonTemplate = jsonTemplate.JsonTemplate()
+commonWords = set(line.strip().lower() for line in open('commonWords.txt'))
+
 
 def subprocess_main_call(fileLocation, templateName):
 
@@ -23,7 +26,7 @@ def subprocess_main_call(fileLocation, templateName):
 	recognised_string += pytesseract.image_to_string(im)
 
 	#turns the single string into an array split on endlines
-	line_by_line = re.split(r"[\n]",recognised_string)
+	line_by_line = re.split(r"[\n]", recognised_string)
 
 	#remove specific irrelevant lines
 	count = len(line_by_line)
@@ -47,10 +50,10 @@ def subprocess_main_call(fileLocation, templateName):
 	#if the ['23']['.']['99'] situation occurs, this loop will ensure the float value is sent through as a single item
 	for i in range(len(lines)):
 		for e in range(lines[i].getSize()):
-			if(e < lines[i].getSize()-2 and lines[i].getField(e).isdigit() == True and (lines[i].getField(e+1) == "." or lines[i].getField(e+1) == ",") and lines[i].getField(e+2).isdigit() == True):
+			if(e < lines[i].getSize()-2 and lines[i].getField(e).isdigit() == True and lines[i].getField(e+1) in [".", ","] and lines[i].getField(e+2).isdigit() == True):
 				lines[i].setField(e, lines[i].getField(e) + "." + lines[i].getField(e+2))
-				lines[i].pop(e+1)
 				lines[i].pop(e+2)
+				lines[i].pop(e+1)
 
 
 	resulting_json = structure_json(lines)
@@ -89,12 +92,10 @@ def processImage(image):
 	img = cv2.imread(image, 0)
 
 	cv2.fastNlMeansDenoising(img,img,20,7,21)
+	img = cv2.GaussianBlur(img, (5,5), 0)
+	img = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,11,2)
 
-	ret3,th3 = cv2.threshold(img,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
-	# ret3,th3 = cv2.threshold(img,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-	# th1 = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,11,2)
-
-	cv2.imwrite('temp.tif', th3)
+	cv2.imwrite('temp.tif', img)
 	im = Image.open('temp.tif')
 
 	return im
@@ -105,7 +106,7 @@ def is_valid_line(test_string):
 
 	check_strings = [
 		"cashier",
-		"--------",
+		"---",
 		"date",
 		"table"
 	]
@@ -152,27 +153,58 @@ def structure_json(lines):
 		item_total = 0
 		item_id = 1
 
-		print("\nRAW DATA TO JSONIFY:")
+		print("\nRAW DATA TO JSONIFY: "+str(len(lines))+" lines")
 		for thing in lines:
-			thing.printAll()
+			print(thing.printAll())
 		print("")
 
 		for i in range(len(lines)):
+
 			numeric_value = False
 			for e in range(lines[i].getSize()):
-				numeric_value = check_if_numeric(lines[i].getField(e))
 
-				if(numeric_value == False):
-					if(lines[i].getField(e) != "R" and len(lines[i].getField(e)) != 0 and len(lines[i].getField(e)) >= 2):
-						if(item_name == ""):
-							item_name = lines[i].getField(e)
+				test_numeric_value = is_numeric_price(lines[i].getField(e))
+
+				if test_numeric_value != False and test_numeric_value < numeric_value:
+					numeric_value = test_numeric_value
+
+				current_field = lines[i].getField(e).split().lower()
+
+			elif current_field != "r" and len(current_field) != 0 and len(current_field) >= 2 and is_unit(current_field) == False and is_too_numeric(current_field) == False:
+
+						closestWord = ""
+						smallestDistance = 100
+
+						# Levenshtein distance of half the size of the tested word, where 3 is the greatest size the distance may be
+						distanceLimit = min(math.floor(len(current_field))/2.0), 3)
+
+						# Find closest word in common word dictionary if any
+						for word in commonWords:
+							if current_field != word:
+								newDistance = Levenshtein.distance(str(current_field), word)
+								if newDistance <= distanceLimit and newDistance < smallestDistance:
+									closestWord = word
+									smallestDistance = newDistance
+							else:
+								closestWord = ""
+								break
+
+						if closestWord != "":
+							print("Levenshtein: "+current_field+" changed to "+closestWord)
+							lines[i].setField(e, closestWord)
+
+						# Concat word to description of item
+						if item_name == "":
+							item_name = current_field
 						else:
-							item_name += " " + lines[i].getField(e)
+							item_name += " " + current_field
 
-			if(numeric_value != False and numeric_value > 0 and numeric_value < 80000 and item_name != ""):
-				if(real_item(item_name) == True):
+			# If the numeric value is valid then save the bill item/row
+			if numeric_value != False and numeric_value > 0 and numeric_value < 80000 and item_name != "":
+				# If the item description is a illegal word (Total, Vat, Tax, etc) then it is the end of the relevant bill
+				if real_item(item_name) == True or item_id == 1:
 					item_total += numeric_value
-					if(array_flag != False):
+					if array_flag != False:
 						json_string += ','
 					json_string += '{"id":"' + str(item_id) + '","desc":"' + item_name + '","price":"' + str(numeric_value) + '","quantity":"1"}'
 					item_id += 1
@@ -186,9 +218,8 @@ def structure_json(lines):
 
 		json_string += ']},"relationships":{"data":{"total":"'+ str(item_total) +'"}}}'
 
-		final_dict = json.loads(json_string)
-
-		return json.dumps(final_dict)
+		json_string = json.loads(json_string)
+		return json.dumps(json_string)
 
 
 
@@ -198,21 +229,52 @@ Checks whether the string that is passed through to the function can be parsed t
 :param given_string: The string to be checked
 :returns: False if the parameter that is passed through cannot be parsed to a float value, the float value if it can be parsed
 """
-def check_if_numeric(given_string):
-	stringList = list(given_string)
-	for i in range(len(stringList)):
-		if stringList[i] == ',':
-			stringList[i] = '.'
-	newString = "".join(stringList)
-	try:
-		float(newString)
+def is_numeric_price(given_string):
+	given_string = given_string.strip()
+
+	if(len(re.findall(r'[0-9\,\.]', given_string.strip()))/float(len(given_string)) > 0.5):
+
+		given_string = re.sub(r'[\,]', '.', given_string)
+		given_string = re.sub(r'[o\(\)JuUoOQDCcae]', '0', given_string)
+		given_string = re.sub(r'[R]', '', given_string)
+		given_string = re.sub(r'[iIltTj]', '1', given_string)
+		given_string = re.sub(r'[sS]', '5', given_string)
+		given_string = re.sub(r'[zZ]', '2', given_string)
+
 		try:
-			int(newString)
-			return False
+			try:
+				int(given_string)
+				return False
+			except ValueError:
+				real_number = float(given_string)
+				return real_number
 		except ValueError:
-			return float(newString)
-	except ValueError:
+			return False
+	else:
 		return False
+
+def is_too_numeric(test_string):
+	test_string = test_string.lower().strip()
+
+	if(len(re.findall(r'[0-9\,\.]', test_string.strip()))/float(len(test_string)) > 0.5):
+		return True
+	return False
+
+
+def is_unit(test_string):
+	check_strings = [
+			"ml",
+			"gr",
+			"gm",
+			"li",
+			"grm",
+			"mil"
+	]
+
+	for check_string in check_strings:
+		if(check_string == test_string.lower()):
+			return True
+	return False
 
 
 
@@ -224,36 +286,22 @@ if it is a predefined keyword the string being passed should not be added as an 
 :returns: False if the test_string is a keyword, but True if the test_string is not a keyword (thusly a real item on the bill)
 """
 def real_item(test_string):
-	check_string1 = "total"
-	check_string2 = "vat"
-	check_string3 = "tax"
-	check_string4 = "debit"
-	check_string5 = "card"
-	check_string6 = "payment"
-	check_string7 = "due"
-	check_string8 = "incl"
-	check_string9 = "paid"
-	check_string10 = "tendered"
+	test_string = test_string.strip()
+	check_string_parts = [
+		"total",
+		"vat",
+		"tax",
+		"debit",
+		"card",
+		"payment",
+		"due",
+		"incl",
+		"paid",
+		"tendered",
+	]
 
-	if(check_string1 in test_string.lower() or check_string1 == test_string.lower()):
-		return False
-	if(check_string2 in test_string.lower() or check_string2 == test_string.lower()):
-		return False
-	if(check_string3 in test_string.lower() or check_string3 == test_string.lower()):
-		return False
-	if(check_string4 in test_string.lower() or check_string4 == test_string.lower()):
-		return False
-	if(check_string5 in test_string.lower() or check_string5 == test_string.lower()):
-		return False
-	if(check_string6 in test_string.lower() or check_string6 == test_string.lower()):
-		return False
-	if(check_string7 in test_string.lower() or check_string7 == test_string.lower()):
-		return False
-	if(check_string8 in test_string.lower() or check_string8 == test_string.lower()):
-		return False
-	if(check_string9 in test_string.lower() or check_string9 == test_string.lower()):
-		return False
-	if(check_string10 in test_string.lower() or check_string10 == test_string.lower()):
-		return False
+	for check_string in check_string_parts:
+		if(check_string in test_string or check_string == test_string):
+			return False
 
 	return True
