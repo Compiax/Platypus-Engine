@@ -8,11 +8,9 @@ import pytesseract
 import Levenshtein
 import cv2
 import os
-import jsonTemplate
 from billItem import BillItem
 from PIL import Image
 
-currentJsonTemplate = jsonTemplate.JsonTemplate()
 commonWords = set(line.strip().lower() for line in open('commonWords.txt'))
 
 
@@ -295,7 +293,7 @@ def is_unit(test_string_input):
 
 	test_strings = [
 		re.sub(r'[1]', 'l', test_string_input),
-		re.sub(r'[1]', 'I', test_string_input)
+		re.sub(r'[1]', 'i', test_string_input)
 	]
 
 	for check_string in check_strings:
@@ -327,6 +325,7 @@ def real_item(test_string):
 		"incl",
 		"paid",
 		"tendered",
+		"receipt"
 	]
 
 	for check_string in check_string_parts:
