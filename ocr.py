@@ -71,12 +71,18 @@ to improve the quality of the image used to obtain Tesseract charcter data
 """
 def process_image(image):
 
+	# Effective Options
+	# 1. Denoise with h = 5 / h = 20
+		# i. Blur/ Don't Blur
+			# a. adaptiveThreshold of 11, 2
+			# b. adaptiveThreshold of 19, 2
 
 	img = cv2.imread(image, 0)
 
-	cv2.fastNlMeansDenoising(img,img,20,7,21)
-	img = cv2.GaussianBlur(img, (5,5), 0)
-	img = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,11,2)
+	cv2.fastNlMeansDenoising(img, img, 5, 7, 21)
+
+	img = cv2.GaussianBlur(img, (5, 5), 0)
+	img = cv2.adaptiveThreshold(img,255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
 
 	cv2.imwrite('temp.tif', img)
 	im = Image.open('temp.tif')
@@ -154,12 +160,12 @@ def structure_json(lines):
 				temp_quantity = is_numeric_quantity(current_field, successor_field)
 
 				if temp_price != False:
-					if temp_price < item_price or item_price == False:
+					if temp_price > item_price or item_price == False:
 						item_price = temp_price
 
 				elif temp_quantity != False:
 					print("Probable Quantity: "+str(lines[i].printAll())+" ==> "+str(temp_quantity)+"\n")
-					if temp_quantity < item_quantity or item_quantity == False:
+					if temp_quantity != 0 and temp_quantity < item_quantity or item_quantity == False:
 						item_quantity = temp_quantity
 
 				elif current_field != "r" and len(current_field) != 0 and len(current_field) >= 2 and is_unit(current_field) == False and is_too_numeric(current_field) == False:
@@ -183,7 +189,8 @@ def structure_json(lines):
 
 						if closestWord != "":
 							print("Levenshtein: "+current_field+" changed to "+closestWord+"\n")
-							lines[i].setField(e, closestWord)
+							current_field = closestWord
+							lines[i].setField(e, current_field)
 
 						# Concat word to description of item
 						if item_name == "":
@@ -193,20 +200,24 @@ def structure_json(lines):
 
 			# If the numeric value is valid then save the bill item/row
 			if item_price != False and item_price > 0 and item_price < 80000 and item_name != "":
+
 				# If the item description is a illegal word (Total, Vat, Tax, etc) then it is the end of the relevant bill
-				if real_item(item_name) == True or item_id == 1:
+				is_real_item = real_item(item_name);
+				if is_real_item == False and item_id > 1:
+					break
+				elif is_real_item == True:
 
 					if item_quantity == False:
 						item_quantity = 1
+					item_price = float(item_price)/item_quantity;
+
 
 					item_total += item_price
 					if array_flag != False:
 						json_string += ','
-					json_string += '{"id":"' + str(item_id) + '","desc":"' + item_name + '","price":"' + str(item_price) + '","quantity":"'+str(item_quantity)+'"}'
+					json_string += '{"id":"' + str(item_id) + '","desc":"' + item_name.title() + '","price":"' + str(item_price) + '","quantity":"'+str(item_quantity)+'"}'
 					item_id += 1
 					array_flag = True
-				else:
-					break
 
 		json_string += ']},"relationships":{"data":{"total":"'+ str(item_total) +'"}}}'
 
@@ -258,12 +269,12 @@ def is_numeric_quantity(given_quantity, successor_item):
 		given_quantity = re.sub(r'[zZ]', '2', given_quantity)
 
 		try:
-			int(given_quantity)
+			int_given_quantity = int(given_quantity)
 
 			# If succeeded by suffix, it's not a quantity
 			if successor_item != False and is_unit(successor_item):
 				return False
-			return given_quantity
+			return int_given_quantity
 
 		except ValueError:
 			return False
@@ -286,6 +297,7 @@ def is_unit(test_string_input):
 		"ml",
 		"gr",
 		"gm",
+		"kg",
 		"li",
 		"grm",
 		"mil"
