@@ -82,7 +82,20 @@ def process_image(image):
 	cv2.fastNlMeansDenoising(img, img, 5, 7, 21)
 
 	img = cv2.GaussianBlur(img, (5, 5), 0)
-	img = cv2.adaptiveThreshold(img,255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+	img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2)
+
+	coords = np.column_stack(np.where(img > 0))
+	angle = cv2.minAreaRect(coords)[-1]
+
+	if angle < -45:
+		angle = -(90 + angle)
+	else:
+		angle = -angle
+
+	(h, w) = img.shape[:2]
+	center = (w // 2, h // 2)
+	rotationMatrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+	img = cv2.warpAffine(img, rotationMatrix, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
 
 	cv2.imwrite('temp.tif', img)
 	im = Image.open('temp.tif')
@@ -151,24 +164,33 @@ def structure_json(lines):
 
 			for e in range(lines[i].getSize()):
 
+				# Format field to be as neutral as possible
 				current_field = lines[i].getField(e).strip().lower()
+
+				# Set successor to current field if it exists
 				successor_field = False
 				if e < (lines[i].getSize() - 1):
 					successor_field = lines[i].getField(e+1).strip().lower()
 
+				# Check if field is a price
 				temp_price = is_numeric_price(lines[i].getField(e))
+
+				# Check if field is a quantity
 				temp_quantity = is_numeric_quantity(current_field, successor_field)
 
+				# If field  is a possible price and is larger than other possible prices, set as price
 				if temp_price != False:
 					if temp_price > item_price or item_price == False:
 						item_price = temp_price
 
+				# If field is a quantity and is smaller than other possible quantities, set as quantity
 				elif temp_quantity != False:
 					print("Probable Quantity: "+str(lines[i].printAll())+" ==> "+str(temp_quantity)+"\n")
 					if temp_quantity != 0 and temp_quantity < item_quantity or item_quantity == False:
 						item_quantity = temp_quantity
 
-				elif current_field != "r" and len(current_field) != 0 and len(current_field) >= 2 and is_unit(current_field) == False and is_too_numeric(current_field) == False:
+				# If field is not a unit of time, or too numeric
+				elif len(current_field) >= 2 and is_unit(current_field) == False and is_too_numeric(current_field) == False:
 
 						closestWord = ""
 						smallestDistance = 100
@@ -198,10 +220,10 @@ def structure_json(lines):
 						else:
 							item_name += " " + current_field
 
-			# If the numeric value is valid then save the bill item/row
+			# If the price value is valid and the item has a description then save the bill item/row
 			if item_price != False and item_price > 0 and item_price < 80000 and item_name != "":
 
-				# If the item description is a illegal word (Total, Vat, Tax, etc) then it is the end of the relevant bill
+				# If the item description is an illegal word then it is the end of the relevant bill
 				is_real_item = real_item(item_name);
 				if is_real_item == False and item_id > 1:
 					break
@@ -211,8 +233,7 @@ def structure_json(lines):
 						item_quantity = 1
 					item_price = float(item_price)/item_quantity;
 
-
-					item_total += item_price
+					item_total += item_price * item_quantity
 					if array_flag != False:
 						json_string += ','
 					json_string += '{"id":"' + str(item_id) + '","desc":"' + item_name.title() + '","price":"' + str(item_price) + '","quantity":"'+str(item_quantity)+'"}'
