@@ -1,11 +1,4 @@
-Platypus-Engine
+Platypus-OCR-Engine
 =====================
 
-@todo Add description
-
-Build status:
-
-| branch | status |
-| ------ | ------ |
-| master | @todo Add travis build status |
-| dev    | @todo Add travis build status |
+Responsible for text recognition, bill interpretation and creation of JSON object that will be sent through to the API for further processing
